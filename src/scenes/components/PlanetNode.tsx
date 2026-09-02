@@ -3,6 +3,7 @@
 import type { Planet } from "@/domain/planets/types";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
 import * as THREE from "three";
+import { isWithinDragThreshold } from "../mapNavigation";
 
 export type PlanetNodeProps = {
   planet: Planet;
@@ -35,7 +36,7 @@ const PlanetFallbackNode = ({
       position={[position.x, 0, position.z]}
       onClick={(event) => {
         event.stopPropagation();
-        onSelect();
+        if (isWithinDragThreshold(event.delta)) onSelect();
       }}
     >
       <mesh>
@@ -78,7 +79,7 @@ export const PlanetNode = ({
       position={[position.x, 0, position.z]}
       onClick={(event) => {
         event.stopPropagation();
-        onSelect();
+        if (isWithinDragThreshold(event.delta)) onSelect();
       }}
     >
       <mesh>

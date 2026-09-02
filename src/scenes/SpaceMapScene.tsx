@@ -2,14 +2,21 @@
 import { Canvas } from "@react-three/fiber";
 import { Stars, OrbitControls, useTexture } from "@react-three/drei";
 import { Component, type ReactNode, Suspense, useRef, useState } from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { PLANETS, type PlanetId } from "@/domain/planets/planetService";
 import { usePlanetPositions } from "./hooks/usePlanetPositions";
 import { Spaceship } from "./components/Spaceship";
 import { PlanetFallbackNodes, PlanetNode } from "./components/PlanetNode";
 import { OrbitRing } from "./components/OrbitRing";
-import { SpaceMapCameraRig } from "./components/SpaceMapCameraRig";
 import { ProximityPrompt } from "./components/ProximityPrompt";
+import {
+  MAP_NAVIGATION_BOUNDS,
+  MAP_CONTROL_HELP,
+  MAP_ORBIT_CONTROLS,
+  clampMapControlsChange,
+  resetMapCamera,
+} from "./mapNavigation";
 import { useAppStore } from "@/store/useAppStore";
 import { PlanetInfoPanel } from "@/ui/PlanetInfoPanel";
 import { QuizModal } from "@/ui/quiz/QuizModal";
@@ -98,6 +105,7 @@ class PlanetTextureErrorBoundary extends Component<
 export const SpaceMapScene = () => {
   const positions = usePlanetPositions();
   const ship = useRef(new THREE.Vector3(0, 0, 4));
+  const controlsRef = useRef<OrbitControlsImpl>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<string | null>(null);
   const nearbyPlanetId = useAppStore((state) => state.nearbyPlanetId);
@@ -195,9 +203,31 @@ export const SpaceMapScene = () => {
         >
           <Spaceship positionRef={ship} onMove={onMove} />
         </Suspense>
-        <SpaceMapCameraRig target={ship} />
-        <OrbitControls enablePan={false} enableZoom={false} />
+        <OrbitControls
+          ref={controlsRef}
+          {...MAP_ORBIT_CONTROLS}
+          onChange={(event) =>
+            clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
+          }
+        />
       </Canvas>
+      <section className="map-controls" aria-labelledby="map-controls-title">
+        <h2 id="map-controls-title">Controles del mapa</h2>
+        <ul>
+          {MAP_CONTROL_HELP.map((instruction) => (
+            <li key={instruction}>{instruction}</li>
+          ))}
+        </ul>
+        <button
+          className="secondary-button map-reset-button"
+          type="button"
+          onClick={() => {
+            if (controlsRef.current) resetMapCamera(controlsRef.current);
+          }}
+        >
+          Restaurar vista inicial
+        </button>
+      </section>
       <div className="map-hint">
         Acércate a un planeta para activar sus opciones
       </div>
