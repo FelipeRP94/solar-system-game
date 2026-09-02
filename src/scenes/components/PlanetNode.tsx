@@ -1,14 +1,27 @@
+"use client";
+
 import type { Planet } from "@/domain/planets/types";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
-export const PlanetNode = ({
+import * as THREE from "three";
+
+export type PlanetNodeProps = {
+  planet: Planet;
+  position: PlanetPosition;
+  texture: THREE.Texture;
+  ringTexture?: THREE.Texture;
+  onSelect: () => void;
+};
+
+type PlanetFallbackNodeProps = Pick<
+  PlanetNodeProps,
+  "planet" | "position" | "onSelect"
+>;
+
+const PlanetFallbackNode = ({
   planet,
   position,
   onSelect,
-}: {
-  planet: Planet;
-  position: PlanetPosition;
-  onSelect: () => void;
-}) => {
+}: PlanetFallbackNodeProps) => {
   const radius =
     planet.id === "jupiter"
       ? 1.15
@@ -32,9 +45,79 @@ export const PlanetNode = ({
       {planet.id === "saturn" && (
         <mesh rotation={[Math.PI / 2.5, 0, 0]}>
           <torusGeometry args={[1.35, 0.08, 8, 48]} />
-          <meshStandardMaterial color="#d7b982" />
+          <meshStandardMaterial
+            color="#d7b982"
+            transparent
+            opacity={0.9}
+            depthWrite={false}
+          />
         </mesh>
       )}
     </group>
   );
 };
+
+export const PlanetNode = ({
+  planet,
+  position,
+  texture,
+  ringTexture,
+  onSelect,
+}: PlanetNodeProps) => {
+  const radius =
+    planet.id === "jupiter"
+      ? 1.15
+      : planet.id === "saturn"
+        ? 0.95
+        : planet.id === "earth" || planet.id === "venus"
+          ? 0.48
+          : 0.35;
+
+  return (
+    <group
+      position={[position.x, 0, position.z]}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+    >
+      <mesh>
+        <sphereGeometry args={[radius, 24, 16]} />
+        <meshStandardMaterial map={texture} roughness={0.8} />
+      </mesh>
+      {planet.id === "saturn" && ringTexture && (
+        <mesh rotation={[Math.PI / 2.5, 0, 0]}>
+          <torusGeometry args={[1.35, 0.08, 8, 48]} />
+          <meshStandardMaterial
+            alphaMap={ringTexture}
+            color="#d7b982"
+            transparent
+            opacity={0.9}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
+
+type PlanetFallbackNodesProps = {
+  planets: Array<{ planet: Planet; position: PlanetPosition }>;
+  onSelect: (planetId: string) => void;
+};
+
+export const PlanetFallbackNodes = ({
+  planets,
+  onSelect,
+}: PlanetFallbackNodesProps) => (
+  <>
+    {planets.map(({ planet, position }) => (
+      <PlanetFallbackNode
+        key={planet.id}
+        planet={planet}
+        position={position}
+        onSelect={() => onSelect(planet.id)}
+      />
+    ))}
+  </>
+);
