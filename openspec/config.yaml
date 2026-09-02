@@ -1,0 +1,51 @@
+schema: spec-driven
+
+context: |
+  Project: solar-system-game
+  Stack: Next.js 16.3.4, React 19.2.8, TypeScript 5, Three.js, React Three Fiber, Zustand
+  Architecture: Next.js App Router with domain services, data adapter, scene components, UI, and stores
+  Testing: Vitest with jsdom and Testing Library setup; Playwright dependency present without a configured suite
+  Style: Type aliases, arrow functions, ESLint Next core web vitals/typescript rules
+  Language: Existing product copy and domain data are Spanish; SDD artifacts remain English
+
+strict_tdd: true
+artifact_store: both
+
+testing:
+  workspace_command: npm test
+  projects:
+    - path: .
+      stack: Next.js 16.3.4 / React 19.2.8 / TypeScript 5
+      test_command: npm test
+      framework: Vitest 4.1.11
+      test_layers:
+        unit: true
+        integration: false
+        e2e: false
+      coverage_command: null
+      quality:
+        linter: npm run lint
+        type_checker: null
+        formatter: null
+
+rules:
+  proposal:
+    - Include rollback plans for risky changes.
+  specs:
+    - Use Given/When/Then scenarios and RFC 2119 keywords.
+  design:
+    - Document architecture decisions and rationale; include diagrams for complex flows.
+  tasks:
+    - Group by phase, use hierarchical numbering, and keep tasks completable in one session.
+  apply:
+    tdd: true
+    test_command: npm test
+    guidelines:
+      - Follow existing project patterns and preserve the type-alias/arrow-function convention.
+  verify:
+    test_command: npm test
+    build_command: npm run build
+    lint_command: npm run lint
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas.
