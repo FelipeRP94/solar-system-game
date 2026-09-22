@@ -196,6 +196,27 @@ h1 em {
     monospace;
   z-index: 2;
 }
+.orbit-controls {
+  position: absolute;
+  z-index: 2;
+  right: 5vw;
+  bottom: 5vh;
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  padding: 14px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font: 11px "DM Mono", monospace;
+}
+.orbit-controls input {
+  width: 100%;
+  accent-color: var(--cyan);
+}
+.orbit-controls .secondary-button {
+  margin: 0;
+}
 .proximity-prompt {
   position: absolute;
   z-index: 3;
