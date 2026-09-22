@@ -1,11 +1,16 @@
 "use client";
-import { Canvas } from "@react-three/fiber";
-import { Stars, OrbitControls, useTexture } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import {
+  Stars,
+  OrbitControls,
+  useTexture,
+} from "@react-three/drei";
 import {
   Component,
   type MutableRefObject,
   type ReactNode,
   Suspense,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -13,7 +18,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { PLANETS, type PlanetId } from "@/domain/planets/planetService";
 import { usePlanetPositions } from "./hooks/usePlanetPositions";
-import { Spaceship } from "./components/Spaceship";
+import { Spaceship, type ShipOrientation } from "./components/Spaceship";
 import { PlanetFallbackNodes, PlanetNode } from "./components/PlanetNode";
 import { OrbitRing } from "./components/OrbitRing";
 import { ProximityPrompt } from "./components/ProximityPrompt";
@@ -113,15 +118,85 @@ type SpaceMapContentsProps = {
   speed: number;
   paused: boolean;
   ship: MutableRefObject<THREE.Vector3>;
+  orientation: MutableRefObject<ShipOrientation>;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+  viewMode: ViewMode;
   onSelect: (planetId: string) => void;
+};
+
+type ViewMode = "map" | "cockpit";
+
+const HoldToLookCamera = ({
+  ship,
+  orientation,
+}: {
+  ship: MutableRefObject<THREE.Vector3>;
+  orientation: MutableRefObject<ShipOrientation>;
+}) => {
+  const { get, gl } = useThree();
+  const isLooking = useRef(false);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const stopLooking = () => {
+      isLooking.current = false;
+    };
+    const handleMouseDown = (event: MouseEvent) => {
+      if (event.button === 0) isLooking.current = true;
+    };
+    const handleMouseUp = (event: MouseEvent) => {
+      if (event.button === 0) stopLooking();
+    };
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isLooking.current) return;
+      if ((event.buttons & 1) === 0) {
+        stopLooking();
+        return;
+      }
+
+      const sensitivity = 0.0025;
+      orientation.current.yaw -= event.movementX * sensitivity;
+      orientation.current.pitch = THREE.MathUtils.clamp(
+        orientation.current.pitch - event.movementY * sensitivity,
+        -Math.PI / 2 + 0.05,
+        Math.PI / 2 - 0.05,
+      );
+    };
+
+    canvas.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("blur", stopLooking);
+
+    return () => {
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("blur", stopLooking);
+    };
+  }, [gl, orientation]);
+
+  useFrame(() => {
+    const camera = get().camera;
+    camera.position.copy(ship.current);
+    camera.rotation.order = "YXZ";
+    camera.rotation.set(
+      orientation.current.pitch,
+      orientation.current.yaw,
+      0,
+    );
+  });
+
+  return null;
 };
 
 const SpaceMapContents = ({
   speed,
   paused,
   ship,
+  orientation,
   controlsRef,
+  viewMode,
   onSelect,
 }: SpaceMapContentsProps) => {
   const { positions } = usePlanetPositions({ speed, paused });
@@ -195,23 +270,26 @@ const SpaceMapContents = ({
           <TexturedPlanetNodes positions={positions} onSelect={onSelect} />
         </PlanetTextureErrorBoundary>
       </Suspense>
-      <Suspense
-        fallback={
-          <mesh position={[0, 0, 4]} rotation={[0, 0, -Math.PI / 2]}>
-            <coneGeometry args={[0.45, 1.8, 4]} />
-            <meshStandardMaterial color="#4dd8ff" emissive="#116080" />
-          </mesh>
-        }
-      >
-        <Spaceship positionRef={ship} onMove={onMove} />
+      <Suspense fallback={null}>
+        <Spaceship
+          onMove={onMove}
+          orientationRef={orientation}
+          relativeToCamera={viewMode === "cockpit"}
+        />
       </Suspense>
-      <OrbitControls
-        ref={controlsRef}
-        {...MAP_ORBIT_CONTROLS}
-        onChange={(event) =>
-          clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
-        }
-      />
+      {viewMode === "cockpit" ? (
+        <>
+          <HoldToLookCamera ship={ship} orientation={orientation} />
+        </>
+      ) : (
+        <OrbitControls
+          ref={controlsRef}
+          {...MAP_ORBIT_CONTROLS}
+          onChange={(event) =>
+            clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
+          }
+        />
+      )}
     </>
   );
 };
@@ -220,10 +298,26 @@ export const SpaceMapScene = () => {
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const ship = useRef(new THREE.Vector3(0, 0, 4));
+  const shipOrientation = useRef<ShipOrientation>({ yaw: 0, pitch: 0 });
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [selected, setSelected] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<string | null>(null);
   const nearbyPlanetId = useAppStore((state) => state.nearbyPlanetId);
+
+  useEffect(() => {
+    const handleViewToggle = (event: KeyboardEvent) => {
+      if (event.code === "KeyV") {
+        setViewMode((current) => (current === "map" ? "cockpit" : "map"));
+      }
+    };
+
+    window.addEventListener("keydown", handleViewToggle);
+    return () => window.removeEventListener("keydown", handleViewToggle);
+  }, []);
+
+  const isCockpitView = viewMode === "cockpit";
+
   return (
     <main className="space-map">
       <div className="map-header">
@@ -232,11 +326,9 @@ export const SpaceMapScene = () => {
           <h1>Mapa del sistema solar</h1>
         </div>
         <div className="legend">
-          <span>
-            <i className="dot cyan" /> Nave
-          </span>
           <span>WASD mover</span>
           <span>Shift turbo</span>
+          <span>V cambiar cámara</span>
         </div>
       </div>
       <Canvas camera={{ position: [6, 6, 12], fov: 45 }}>
@@ -244,30 +336,52 @@ export const SpaceMapScene = () => {
           speed={speed}
           paused={paused}
           ship={ship}
+          orientation={shipOrientation}
           controlsRef={controlsRef}
+          viewMode={viewMode}
           onSelect={setSelected}
         />
       </Canvas>
-      <section className="map-controls" aria-labelledby="map-controls-title">
-        <h2 id="map-controls-title">Controles del mapa</h2>
-        <ul>
-          {MAP_CONTROL_HELP.map((instruction) => (
-            <li key={instruction}>{instruction}</li>
-          ))}
-        </ul>
-        <button
-          className="secondary-button map-reset-button"
-          type="button"
-          onClick={() => {
-            if (controlsRef.current) resetMapCamera(controlsRef.current);
-          }}
-        >
-          Restaurar vista inicial
-        </button>
-      </section>
-      <div className="map-hint">
-        Acércate a un planeta para activar sus opciones
-      </div>
+      {isCockpitView && <div className="cockpit-overlay" aria-hidden="true" />}
+      <button
+        className="secondary-button view-toggle"
+        type="button"
+        onClick={() =>
+          setViewMode((current) => (current === "map" ? "cockpit" : "map"))
+        }
+        aria-pressed={isCockpitView}
+      >
+        {isCockpitView ? "Vista del sistema solar" : "Vista interior"}
+      </button>
+      {!isCockpitView && (
+        <section className="map-controls" aria-labelledby="map-controls-title">
+          <h2 id="map-controls-title">Controles del mapa</h2>
+          <ul>
+            {MAP_CONTROL_HELP.map((instruction) => (
+              <li key={instruction}>{instruction}</li>
+            ))}
+          </ul>
+          <button
+            className="secondary-button map-reset-button"
+            type="button"
+            onClick={() => {
+              if (controlsRef.current) resetMapCamera(controlsRef.current);
+            }}
+          >
+            Restaurar vista inicial
+          </button>
+        </section>
+      )}
+      {!isCockpitView && (
+        <div className="map-hint">
+          Acércate a un planeta para activar sus opciones
+        </div>
+      )}
+      {isCockpitView && (
+        <div className="cockpit-hint">
+          Mantén pulsado el botón izquierdo y mueve el ratón
+        </div>
+      )}
       <div className="orbit-controls" aria-label="Controles orbitales">
         <label htmlFor="orbital-speed">
           Velocidad orbital: {speed.toFixed(1)}x

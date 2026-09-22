@@ -2,18 +2,36 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { useFreeFlightControls } from "../hooks/useFreeFlightControls";
+
+export type ShipOrientation = {
+  yaw: number;
+  pitch: number;
+};
+
 export const Spaceship = ({
   onMove,
+  orientationRef,
+  relativeToCamera,
 }: {
   onMove: (position: THREE.Vector3) => void;
-  positionRef: React.MutableRefObject<THREE.Vector3>;
+  orientationRef: React.MutableRefObject<ShipOrientation>;
+  relativeToCamera: boolean;
 }) => {
   const group = useRef<THREE.Group>(null);
   const position = useRef(new THREE.Vector3(0, 0, 4));
+  const rotation = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
   const move = useFreeFlightControls();
   useFrame((_, delta) => {
+    if (relativeToCamera) {
+      const { yaw, pitch } = orientationRef.current;
+      rotation.current.set(pitch, yaw, 0);
+    }
+
     const change = move(delta);
     if (change) {
+      if (relativeToCamera) {
+        change.applyEuler(rotation.current);
+      }
       position.current.add(change);
       if (position.current.length() < 2.4) position.current.setLength(2.4);
       position.current.x = THREE.MathUtils.clamp(position.current.x, -45, 45);
@@ -21,10 +39,13 @@ export const Spaceship = ({
       position.current.z = THREE.MathUtils.clamp(position.current.z, -45, 45);
       onMove(position.current.clone());
     }
-    if (group.current) group.current.position.copy(position.current);
+    if (group.current) {
+      group.current.position.copy(position.current);
+      group.current.rotation.copy(rotation.current);
+    }
   });
   return (
-    <group ref={group}>
+    <group ref={group} visible={false}>
       <mesh rotation={[0, 0, -Math.PI / 2]}>
         <coneGeometry args={[0.45, 1.8, 4]} />
         <meshStandardMaterial color="#f3f7ff" metalness={0.8} roughness={0.2} />
