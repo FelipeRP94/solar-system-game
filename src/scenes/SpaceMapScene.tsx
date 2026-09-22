@@ -1,7 +1,14 @@
 "use client";
 import { Canvas } from "@react-three/fiber";
 import { Stars, OrbitControls, useTexture } from "@react-three/drei";
-import { Component, type ReactNode, Suspense, useRef, useState } from "react";
+import {
+  Component,
+  type MutableRefObject,
+  type ReactNode,
+  Suspense,
+  useRef,
+  useState,
+} from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { PLANETS, type PlanetId } from "@/domain/planets/planetService";
@@ -34,7 +41,7 @@ const PLANET_TEXTURE_SET = {
 } as const;
 
 type TexturedPlanetNodesProps = {
-  positions: ReturnType<typeof usePlanetPositions>;
+  positions: ReturnType<typeof usePlanetPositions>["positions"];
   onSelect: (planetId: string) => void;
 };
 
@@ -102,13 +109,22 @@ class PlanetTextureErrorBoundary extends Component<
   }
 }
 
-export const SpaceMapScene = () => {
-  const positions = usePlanetPositions();
-  const ship = useRef(new THREE.Vector3(0, 0, 4));
-  const controlsRef = useRef<OrbitControlsImpl>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [quiz, setQuiz] = useState<string | null>(null);
-  const nearbyPlanetId = useAppStore((state) => state.nearbyPlanetId);
+type SpaceMapContentsProps = {
+  speed: number;
+  paused: boolean;
+  ship: MutableRefObject<THREE.Vector3>;
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+  onSelect: (planetId: string) => void;
+};
+
+const SpaceMapContents = ({
+  speed,
+  paused,
+  ship,
+  controlsRef,
+  onSelect,
+}: SpaceMapContentsProps) => {
+  const { positions } = usePlanetPositions({ speed, paused });
   const setNearby = useAppStore((state) => state.setNearbyPlanet);
   const onMove = (current: THREE.Vector3) => {
     ship.current.copy(current);
@@ -125,6 +141,89 @@ export const SpaceMapScene = () => {
     });
     setNearby(closest);
   };
+
+  return (
+    <>
+      <color attach="background" args={["#050817"]} />
+      <fog attach="fog" args={["#050817", 20, 100]} />
+      <ambientLight intensity={1.2} />
+      <pointLight position={[0, 0, 0]} intensity={8} color="#ffcf78" />
+      <Stars
+        radius={90}
+        depth={40}
+        count={1800}
+        factor={2}
+        saturation={0}
+        fade
+      />
+      {positions.map((position) => (
+        <OrbitRing
+          key={`orbit-${position.planetId}`}
+          radius={position.sceneDistance}
+        />
+      ))}
+      <Suspense
+        fallback={
+          <>
+            <SunFallback />
+            <PlanetFallbackNodes
+              planets={positions.map((position) => ({
+                planet: PLANETS.find((item) => item.id === position.planetId)!,
+                position,
+              }))}
+              onSelect={onSelect}
+            />
+          </>
+        }
+      >
+        <PlanetTextureErrorBoundary
+          fallback={
+            <>
+              <SunFallback />
+              <PlanetFallbackNodes
+                planets={positions.map((position) => ({
+                  planet: PLANETS.find(
+                    (item) => item.id === position.planetId,
+                  )!,
+                  position,
+                }))}
+                onSelect={onSelect}
+              />
+            </>
+          }
+        >
+          <TexturedPlanetNodes positions={positions} onSelect={onSelect} />
+        </PlanetTextureErrorBoundary>
+      </Suspense>
+      <Suspense
+        fallback={
+          <mesh position={[0, 0, 4]} rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[0.45, 1.8, 4]} />
+            <meshStandardMaterial color="#4dd8ff" emissive="#116080" />
+          </mesh>
+        }
+      >
+        <Spaceship positionRef={ship} onMove={onMove} />
+      </Suspense>
+      <OrbitControls
+        ref={controlsRef}
+        {...MAP_ORBIT_CONTROLS}
+        onChange={(event) =>
+          clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
+        }
+      />
+    </>
+  );
+};
+
+export const SpaceMapScene = () => {
+  const [speed, setSpeed] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const ship = useRef(new THREE.Vector3(0, 0, 4));
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [quiz, setQuiz] = useState<string | null>(null);
+  const nearbyPlanetId = useAppStore((state) => state.nearbyPlanetId);
   return (
     <main className="space-map">
       <div className="map-header">
@@ -141,74 +240,12 @@ export const SpaceMapScene = () => {
         </div>
       </div>
       <Canvas camera={{ position: [6, 6, 12], fov: 45 }}>
-        <color attach="background" args={["#050817"]} />
-        <fog attach="fog" args={["#050817", 20, 100]} />
-        <ambientLight intensity={1.2} />
-        <pointLight position={[0, 0, 0]} intensity={8} color="#ffcf78" />
-        <Stars
-          radius={90}
-          depth={40}
-          count={1800}
-          factor={2}
-          saturation={0}
-          fade
-        />
-        {positions.map((position) => (
-          <OrbitRing
-            key={`orbit-${position.planetId}`}
-            radius={position.sceneDistance}
-          />
-        ))}
-        <Suspense
-          fallback={
-            <>
-              <SunFallback />
-              <PlanetFallbackNodes
-                planets={positions.map((position) => ({
-                  planet: PLANETS.find((item) => item.id === position.planetId)!,
-                  position,
-                }))}
-                onSelect={setSelected}
-              />
-            </>
-          }
-        >
-          <PlanetTextureErrorBoundary
-            fallback={
-              <>
-                <SunFallback />
-                <PlanetFallbackNodes
-                  planets={positions.map((position) => ({
-                    planet: PLANETS.find((item) => item.id === position.planetId)!,
-                    position,
-                  }))}
-                  onSelect={setSelected}
-                />
-              </>
-            }
-          >
-            <TexturedPlanetNodes
-              positions={positions}
-              onSelect={setSelected}
-            />
-          </PlanetTextureErrorBoundary>
-        </Suspense>
-        <Suspense
-          fallback={
-            <mesh position={[0, 0, 4]} rotation={[0, 0, -Math.PI / 2]}>
-              <coneGeometry args={[0.45, 1.8, 4]} />
-              <meshStandardMaterial color="#4dd8ff" emissive="#116080" />
-            </mesh>
-          }
-        >
-          <Spaceship positionRef={ship} onMove={onMove} />
-        </Suspense>
-        <OrbitControls
-          ref={controlsRef}
-          {...MAP_ORBIT_CONTROLS}
-          onChange={(event) =>
-            clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
-          }
+        <SpaceMapContents
+          speed={speed}
+          paused={paused}
+          ship={ship}
+          controlsRef={controlsRef}
+          onSelect={setSelected}
         />
       </Canvas>
       <section className="map-controls" aria-labelledby="map-controls-title">
@@ -230,6 +267,28 @@ export const SpaceMapScene = () => {
       </section>
       <div className="map-hint">
         Acércate a un planeta para activar sus opciones
+      </div>
+      <div className="orbit-controls" aria-label="Controles orbitales">
+        <label htmlFor="orbital-speed">
+          Velocidad orbital: {speed.toFixed(1)}x
+        </label>
+        <input
+          id="orbital-speed"
+          type="range"
+          min="0"
+          max="10"
+          step="0.1"
+          value={speed}
+          aria-label="Velocidad orbital"
+          onChange={(event) => setSpeed(Number(event.target.value))}
+        />
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setPaused((value) => !value)}
+        >
+          {paused ? "Reanudar" : "Pausar"}
+        </button>
       </div>
       {nearbyPlanetId && !selected && !quiz && (
         <ProximityPrompt
