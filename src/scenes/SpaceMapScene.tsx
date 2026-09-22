@@ -1,15 +1,29 @@
 "use client";
 import { Canvas } from "@react-three/fiber";
 import { Stars, OrbitControls, useTexture } from "@react-three/drei";
-import { Component, type ReactNode, Suspense, useRef, useState } from "react";
+import {
+  Component,
+  type MutableRefObject,
+  type ReactNode,
+  Suspense,
+  useRef,
+  useState,
+} from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { PLANETS, type PlanetId } from "@/domain/planets/planetService";
 import { usePlanetPositions } from "./hooks/usePlanetPositions";
 import { Spaceship } from "./components/Spaceship";
 import { PlanetFallbackNodes, PlanetNode } from "./components/PlanetNode";
 import { OrbitRing } from "./components/OrbitRing";
-import { SpaceMapCameraRig } from "./components/SpaceMapCameraRig";
 import { ProximityPrompt } from "./components/ProximityPrompt";
+import {
+  MAP_NAVIGATION_BOUNDS,
+  MAP_CONTROL_HELP,
+  MAP_ORBIT_CONTROLS,
+  clampMapControlsChange,
+  resetMapCamera,
+} from "./mapNavigation";
 import { useAppStore } from "@/store/useAppStore";
 import { PlanetInfoPanel } from "@/ui/PlanetInfoPanel";
 import { QuizModal } from "@/ui/quiz/QuizModal";
@@ -19,7 +33,6 @@ import {
   SUN_TEXTURE,
 } from "./planetTextures";
 import type { PlanetNodeProps } from "./components/PlanetNode";
-import { auToSceneDistance } from "@/domain/ephemeris/distanceScale";
 
 const PLANET_TEXTURE_SET = {
   ...PLANET_TEXTURES,
@@ -99,11 +112,18 @@ class PlanetTextureErrorBoundary extends Component<
 type SpaceMapContentsProps = {
   speed: number;
   paused: boolean;
-  ship: React.MutableRefObject<THREE.Vector3>;
+  ship: MutableRefObject<THREE.Vector3>;
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
   onSelect: (planetId: string) => void;
 };
 
-const SpaceMapContents = ({ speed, paused, ship, onSelect }: SpaceMapContentsProps) => {
+const SpaceMapContents = ({
+  speed,
+  paused,
+  ship,
+  controlsRef,
+  onSelect,
+}: SpaceMapContentsProps) => {
   const { positions } = usePlanetPositions({ speed, paused });
   const setNearby = useAppStore((state) => state.setNearbyPlanet);
   const onMove = (current: THREE.Vector3) => {
@@ -111,7 +131,9 @@ const SpaceMapContents = ({ speed, paused, ship, onSelect }: SpaceMapContentsPro
     let closest: string | null = null;
     let distance = 2.4;
     positions.forEach((position) => {
-      const next = current.distanceTo(new THREE.Vector3(position.x, 0, position.z));
+      const next = current.distanceTo(
+        new THREE.Vector3(position.x, 0, position.z),
+      );
       if (next < distance) {
         distance = next;
         closest = position.planetId;
@@ -119,26 +141,77 @@ const SpaceMapContents = ({ speed, paused, ship, onSelect }: SpaceMapContentsPro
     });
     setNearby(closest);
   };
+
   return (
     <>
       <color attach="background" args={["#050817"]} />
       <fog attach="fog" args={["#050817", 20, 100]} />
       <ambientLight intensity={1.2} />
       <pointLight position={[0, 0, 0]} intensity={8} color="#ffcf78" />
-      <Stars radius={90} depth={40} count={1800} factor={2} saturation={0} fade />
+      <Stars
+        radius={90}
+        depth={40}
+        count={1800}
+        factor={2}
+        saturation={0}
+        fade
+      />
       {positions.map((position) => (
-        <OrbitRing key={`orbit-${position.planetId}`} radius={auToSceneDistance(PLANETS.find((planet) => planet.id === position.planetId)!.distanceFromSunAU)} />
+        <OrbitRing
+          key={`orbit-${position.planetId}`}
+          radius={position.sceneDistance}
+        />
       ))}
-      <Suspense fallback={<><SunFallback /><PlanetFallbackNodes planets={positions.map((position) => ({ planet: PLANETS.find((item) => item.id === position.planetId)!, position }))} onSelect={onSelect} /></>}>
-        <PlanetTextureErrorBoundary fallback={<><SunFallback /><PlanetFallbackNodes planets={positions.map((position) => ({ planet: PLANETS.find((item) => item.id === position.planetId)!, position }))} onSelect={onSelect} /></>}>
+      <Suspense
+        fallback={
+          <>
+            <SunFallback />
+            <PlanetFallbackNodes
+              planets={positions.map((position) => ({
+                planet: PLANETS.find((item) => item.id === position.planetId)!,
+                position,
+              }))}
+              onSelect={onSelect}
+            />
+          </>
+        }
+      >
+        <PlanetTextureErrorBoundary
+          fallback={
+            <>
+              <SunFallback />
+              <PlanetFallbackNodes
+                planets={positions.map((position) => ({
+                  planet: PLANETS.find(
+                    (item) => item.id === position.planetId,
+                  )!,
+                  position,
+                }))}
+                onSelect={onSelect}
+              />
+            </>
+          }
+        >
           <TexturedPlanetNodes positions={positions} onSelect={onSelect} />
         </PlanetTextureErrorBoundary>
       </Suspense>
-      <Suspense fallback={<mesh position={[0, 0, 4]} rotation={[0, 0, -Math.PI / 2]}><coneGeometry args={[0.45, 1.8, 4]} /><meshStandardMaterial color="#4dd8ff" emissive="#116080" /></mesh>}>
+      <Suspense
+        fallback={
+          <mesh position={[0, 0, 4]} rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[0.45, 1.8, 4]} />
+            <meshStandardMaterial color="#4dd8ff" emissive="#116080" />
+          </mesh>
+        }
+      >
         <Spaceship positionRef={ship} onMove={onMove} />
       </Suspense>
-      <SpaceMapCameraRig target={ship} />
-      <OrbitControls enablePan={false} enableZoom={false} />
+      <OrbitControls
+        ref={controlsRef}
+        {...MAP_ORBIT_CONTROLS}
+        onChange={(event) =>
+          clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
+        }
+      />
     </>
   );
 };
@@ -147,6 +220,7 @@ export const SpaceMapScene = () => {
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const ship = useRef(new THREE.Vector3(0, 0, 4));
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [quiz, setQuiz] = useState<string | null>(null);
   const nearbyPlanetId = useAppStore((state) => state.nearbyPlanetId);
@@ -170,14 +244,34 @@ export const SpaceMapScene = () => {
           speed={speed}
           paused={paused}
           ship={ship}
+          controlsRef={controlsRef}
           onSelect={setSelected}
         />
       </Canvas>
+      <section className="map-controls" aria-labelledby="map-controls-title">
+        <h2 id="map-controls-title">Controles del mapa</h2>
+        <ul>
+          {MAP_CONTROL_HELP.map((instruction) => (
+            <li key={instruction}>{instruction}</li>
+          ))}
+        </ul>
+        <button
+          className="secondary-button map-reset-button"
+          type="button"
+          onClick={() => {
+            if (controlsRef.current) resetMapCamera(controlsRef.current);
+          }}
+        >
+          Restaurar vista inicial
+        </button>
+      </section>
       <div className="map-hint">
         Acércate a un planeta para activar sus opciones
       </div>
       <div className="orbit-controls" aria-label="Controles orbitales">
-        <label htmlFor="orbital-speed">Velocidad orbital: {speed.toFixed(1)}x</label>
+        <label htmlFor="orbital-speed">
+          Velocidad orbital: {speed.toFixed(1)}x
+        </label>
         <input
           id="orbital-speed"
           type="range"
@@ -188,7 +282,11 @@ export const SpaceMapScene = () => {
           aria-label="Velocidad orbital"
           onChange={(event) => setSpeed(Number(event.target.value))}
         />
-        <button type="button" className="secondary-button" onClick={() => setPaused((value) => !value)}>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setPaused((value) => !value)}
+        >
           {paused ? "Reanudar" : "Pausar"}
         </button>
       </div>

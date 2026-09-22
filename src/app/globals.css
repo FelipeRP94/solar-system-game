@@ -195,6 +195,42 @@ h1 em {
     11px "DM Mono",
     monospace;
   z-index: 2;
+  max-width: min(520px, 90vw);
+  line-height: 1.5;
+}
+.map-controls {
+  position: absolute;
+  left: 5vw;
+  bottom: 12vh;
+  z-index: 2;
+  width: min(300px, 90vw);
+  padding: 15px 17px;
+  color: var(--muted);
+  background: rgba(9, 15, 37, 0.78);
+  border: 1px solid var(--line);
+  pointer-events: none;
+  font:
+    11px "DM Mono",
+    monospace;
+  line-height: 1.5;
+}
+.map-controls h2 {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font:
+    500 12px "DM Mono",
+    monospace;
+  text-transform: uppercase;
+}
+.map-controls ul {
+  display: grid;
+  gap: 3px;
+  list-style: none;
+}
+.map-reset-button {
+  margin: 12px 0 0;
+  color: var(--ink);
+  pointer-events: auto;
 }
 .orbit-controls {
   position: absolute;
@@ -413,6 +449,11 @@ h1 em {
     margin-top: 0;
     flex-wrap: wrap;
     width: 250px;
+  }
+  .map-controls {
+    left: 6vw;
+    bottom: 12vh;
+    width: min(280px, 88vw);
   }
   .panel {
     top: auto;
