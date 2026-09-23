@@ -7,6 +7,7 @@ import {
 } from "@react-three/drei";
 import {
   Component,
+  memo,
   type MutableRefObject,
   type ReactNode,
   Suspense,
@@ -16,7 +17,7 @@ import {
 } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
-import { PLANETS, type PlanetId } from "@/domain/planets/planetService";
+import { PLANETS_BY_ID, type PlanetId } from "@/domain/planets/planetService";
 import { usePlanetPositions } from "./hooks/usePlanetPositions";
 import { Spaceship, type ShipOrientation } from "./components/Spaceship";
 import { PlanetFallbackNodes, PlanetNode } from "./components/PlanetNode";
@@ -47,11 +48,15 @@ const PLANET_TEXTURE_SET = {
 
 type TexturedPlanetNodesProps = {
   positions: ReturnType<typeof usePlanetPositions>["positions"];
+  positionsRef: ReturnType<typeof usePlanetPositions>["positionsRef"];
+  isAnimatingRef: ReturnType<typeof usePlanetPositions>["isAnimatingRef"];
   onSelect: (planetId: string) => void;
 };
 
 const TexturedPlanetNodes = ({
   positions,
+  positionsRef,
+  isAnimatingRef,
   onSelect,
 }: TexturedPlanetNodesProps) => {
   const textures = useTexture(PLANET_TEXTURE_SET, (loadedTextures) => {
@@ -73,11 +78,14 @@ const TexturedPlanetNodes = ({
           toneMapped={false}
         />
       </mesh>
-      {positions.map((position) => {
-        const planet = PLANETS.find((item) => item.id === position.planetId)!;
+      {positions.map((position, positionIndex) => {
+        const planet = PLANETS_BY_ID.get(position.planetId as PlanetId)!;
         const props: PlanetNodeProps = {
           planet,
           position,
+          positionsRef,
+          isAnimatingRef,
+          positionIndex,
           texture: textures[planet.id as PlanetId],
           ringTexture: textures.saturnRing,
           onSelect: () => onSelect(planet.id),
@@ -115,8 +123,8 @@ class PlanetTextureErrorBoundary extends Component<
 }
 
 type SpaceMapContentsProps = {
-  speed: number;
-  paused: boolean;
+  speedRef: MutableRefObject<number>;
+  pausedRef: MutableRefObject<boolean>;
   ship: MutableRefObject<THREE.Vector3>;
   orientation: MutableRefObject<ShipOrientation>;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
@@ -190,31 +198,40 @@ const HoldToLookCamera = ({
   return null;
 };
 
-const SpaceMapContents = ({
-  speed,
-  paused,
+const SpaceMapContents = memo(({
+  speedRef,
+  pausedRef,
   ship,
   orientation,
   controlsRef,
   viewMode,
   onSelect,
 }: SpaceMapContentsProps) => {
-  const { positions } = usePlanetPositions({ speed, paused });
+  const { positions, positionsRef, isAnimatingRef } = usePlanetPositions({
+    speedRef,
+    pausedRef,
+  });
   const setNearby = useAppStore((state) => state.setNearbyPlanet);
+  const nearbyPlanetRef = useRef<string | null>(null);
   const onMove = (current: THREE.Vector3) => {
     ship.current.copy(current);
     let closest: string | null = null;
-    let distance = 2.4;
-    positions.forEach((position) => {
-      const next = current.distanceTo(
-        new THREE.Vector3(position.x, 0, position.z),
-      );
-      if (next < distance) {
-        distance = next;
+    let distanceSquared = 2.4 ** 2;
+    positionsRef.current.forEach((position) => {
+      const deltaX = current.x - position.x;
+      const deltaY = current.y;
+      const deltaZ = current.z - position.z;
+      const nextDistanceSquared =
+        deltaX ** 2 + deltaY ** 2 + deltaZ ** 2;
+      if (nextDistanceSquared < distanceSquared) {
+        distanceSquared = nextDistanceSquared;
         closest = position.planetId;
       }
     });
-    setNearby(closest);
+    if (nearbyPlanetRef.current !== closest) {
+      nearbyPlanetRef.current = closest;
+      setNearby(closest);
+    }
   };
 
   return (
@@ -231,10 +248,13 @@ const SpaceMapContents = ({
         saturation={0}
         fade
       />
-      {positions.map((position) => (
+      {positions.map((position, positionIndex) => (
         <OrbitRing
           key={`orbit-${position.planetId}`}
           radius={position.sceneDistance}
+          positionsRef={positionsRef}
+          isAnimatingRef={isAnimatingRef}
+          positionIndex={positionIndex}
         />
       ))}
       <Suspense
@@ -243,9 +263,11 @@ const SpaceMapContents = ({
             <SunFallback />
             <PlanetFallbackNodes
               planets={positions.map((position) => ({
-                planet: PLANETS.find((item) => item.id === position.planetId)!,
+                planet: PLANETS_BY_ID.get(position.planetId as PlanetId)!,
                 position,
               }))}
+              positionsRef={positionsRef}
+              isAnimatingRef={isAnimatingRef}
               onSelect={onSelect}
             />
           </>
@@ -257,26 +279,29 @@ const SpaceMapContents = ({
               <SunFallback />
               <PlanetFallbackNodes
                 planets={positions.map((position) => ({
-                  planet: PLANETS.find(
-                    (item) => item.id === position.planetId,
-                  )!,
+                  planet: PLANETS_BY_ID.get(position.planetId as PlanetId)!,
                   position,
                 }))}
+                positionsRef={positionsRef}
+                isAnimatingRef={isAnimatingRef}
                 onSelect={onSelect}
               />
             </>
           }
         >
-          <TexturedPlanetNodes positions={positions} onSelect={onSelect} />
+          <TexturedPlanetNodes
+            positions={positions}
+            positionsRef={positionsRef}
+            isAnimatingRef={isAnimatingRef}
+            onSelect={onSelect}
+          />
         </PlanetTextureErrorBoundary>
       </Suspense>
-      <Suspense fallback={null}>
-        <Spaceship
-          onMove={onMove}
-          orientationRef={orientation}
-          relativeToCamera={viewMode === "cockpit"}
-        />
-      </Suspense>
+      <Spaceship
+        onMove={onMove}
+        orientationRef={orientation}
+        relativeToCamera={viewMode === "cockpit"}
+      />
       {viewMode === "cockpit" ? (
         <>
           <HoldToLookCamera ship={ship} orientation={orientation} />
@@ -292,11 +317,15 @@ const SpaceMapContents = ({
       )}
     </>
   );
-};
+});
+
+SpaceMapContents.displayName = "SpaceMapContents";
 
 export const SpaceMapScene = () => {
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
+  const speedRef = useRef(speed);
+  const pausedRef = useRef(paused);
   const ship = useRef(new THREE.Vector3(0, 0, 4));
   const shipOrientation = useRef<ShipOrientation>({ yaw: 0, pitch: 0 });
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
@@ -317,6 +346,14 @@ export const SpaceMapScene = () => {
   }, []);
 
   const isCockpitView = viewMode === "cockpit";
+  const updateSpeed = (nextSpeed: number) => {
+    speedRef.current = nextSpeed;
+    setSpeed(nextSpeed);
+  };
+  const togglePaused = () => {
+    pausedRef.current = !pausedRef.current;
+    setPaused(pausedRef.current);
+  };
 
   return (
     <main className="space-map">
@@ -331,10 +368,14 @@ export const SpaceMapScene = () => {
           <span>V cambiar cámara</span>
         </div>
       </div>
-      <Canvas camera={{ position: [6, 6, 12], fov: 45 }}>
+      <Canvas
+        camera={{ position: [6, 6, 12], fov: 45 }}
+        dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
+      >
         <SpaceMapContents
-          speed={speed}
-          paused={paused}
+          speedRef={speedRef}
+          pausedRef={pausedRef}
           ship={ship}
           orientation={shipOrientation}
           controlsRef={controlsRef}
@@ -394,12 +435,12 @@ export const SpaceMapScene = () => {
           step="0.1"
           value={speed}
           aria-label="Velocidad orbital"
-          onChange={(event) => setSpeed(Number(event.target.value))}
+           onChange={(event) => updateSpeed(Number(event.target.value))}
         />
         <button
           type="button"
           className="secondary-button"
-          onClick={() => setPaused((value) => !value)}
+           onClick={togglePaused}
         >
           {paused ? "Reanudar" : "Pausar"}
         </button>

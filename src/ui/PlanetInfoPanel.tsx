@@ -1,8 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
-import { fetchPlanet } from "@/data/api/solarSystemApi";
+import { useEffect } from "react";
+import { getPlanet } from "@/domain/planets/planetService";
 import { useProgressStore } from "@/store/useProgressStore";
-import type { Planet } from "@/domain/planets/types";
 export const PlanetInfoPanel = ({
   planetId,
   onClose,
@@ -12,22 +11,12 @@ export const PlanetInfoPanel = ({
   onClose: () => void;
   onQuiz: () => void;
 }) => {
-  const [planet, setPlanet] = useState<Planet | null>(null);
+  const planet = getPlanet(planetId);
   const markViewed = useProgressStore((state) => state.markInfoViewed);
   useEffect(() => {
-    fetchPlanet(planetId).then((value) => {
-      setPlanet(value);
-      markViewed(planetId);
-    });
+    if (getPlanet(planetId)) markViewed(planetId);
   }, [planetId, markViewed]);
-  if (!planet)
-    return (
-      <section className="panel">
-        <p className="eyebrow">ARCHIVE QUERY</p>
-        <h2>Cargando datos...</h2>
-        <div className="skeleton" />
-      </section>
-    );
+  if (!planet) return null;
   return (
     <section className="panel" aria-label={`Información de ${planet.name}`}>
       <button className="close-button" onClick={onClose} aria-label="Cerrar">
