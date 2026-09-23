@@ -18,6 +18,10 @@ export const QuizModal = ({
   const markComplete = useProgressStore((state) => state.markQuizCompleted);
   const planet = getPlanet(planetId);
   const current = questions[index];
+  const isCorrect =
+    current !== undefined &&
+    selected !== null &&
+    isCorrectAnswer(current, selected);
   const answer = (choice: number) => {
     if (selected !== null) return;
     setSelected(choice);
@@ -77,10 +81,10 @@ export const QuizModal = ({
             </div>
             {selected !== null && (
               <div
-                className={`feedback ${isCorrectAnswer(current, selected) ? "success" : "error"}`}
+                className={`feedback ${isCorrect ? "success" : "error"}`}
               >
                 <strong>
-                  {isCorrectAnswer(current, selected)
+                  {isCorrect
                     ? "Correcto"
                     : `La respuesta era: ${current.options[current.correctIndex]}`}
                 </strong>

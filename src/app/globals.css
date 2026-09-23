@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 :root {
   --ink: #f1f4ff;
   --muted: #929bb5;
@@ -16,7 +15,7 @@ body {
   min-height: 100%;
   background: #050817;
   color: var(--ink);
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-space-grotesk), sans-serif;
 }
 body {
   overflow-x: hidden;
@@ -31,7 +30,7 @@ button {
 .eyebrow {
   color: var(--cyan);
   font:
-    500 10px "DM Mono",
+    500 10px var(--font-dm-mono),
     monospace;
   letter-spacing: 0.16em;
 }
@@ -109,7 +108,7 @@ h1 em {
   margin-top: 90px;
   color: #75809d;
   font:
-    10px "DM Mono",
+    10px var(--font-dm-mono),
     monospace;
   letter-spacing: 0.12em;
 }
@@ -146,6 +145,10 @@ h1 em {
   position: relative;
   overflow: hidden;
   background: #050817;
+}
+.scene-loading {
+  display: grid;
+  place-items: center;
 }
 .space-map canvas {
   position: absolute !important;
@@ -190,7 +193,7 @@ h1 em {
   gap: 18px;
   margin-top: 8px;
   font:
-    11px "DM Mono",
+    11px var(--font-dm-mono),
     monospace;
 }
 .dot {
@@ -210,7 +213,7 @@ h1 em {
   bottom: 5vh;
   color: var(--muted);
   font:
-    11px "DM Mono",
+    11px var(--font-dm-mono),
     monospace;
   z-index: 2;
   max-width: min(520px, 90vw);
@@ -229,7 +232,7 @@ h1 em {
   border: 1px solid var(--line);
   text-align: center;
   font:
-    11px "DM Mono",
+    11px var(--font-dm-mono),
     monospace;
 }
 .map-controls {
@@ -244,7 +247,7 @@ h1 em {
   border: 1px solid var(--line);
   pointer-events: none;
   font:
-    11px "DM Mono",
+    11px var(--font-dm-mono),
     monospace;
   line-height: 1.5;
 }
@@ -252,7 +255,7 @@ h1 em {
   margin-bottom: 8px;
   color: var(--ink);
   font:
-    500 12px "DM Mono",
+    500 12px var(--font-dm-mono),
     monospace;
   text-transform: uppercase;
 }
@@ -279,7 +282,7 @@ h1 em {
   background: var(--panel);
   border: 1px solid var(--line);
   font:
-    11px "DM Mono",
+    11px var(--font-dm-mono),
     monospace;
 }
 .orbit-controls input {
@@ -366,7 +369,7 @@ h1 em {
 .gas {
   color: var(--muted);
   font:
-    10px "DM Mono",
+    10px var(--font-dm-mono),
     monospace;
 }
 .data-item strong {

@@ -43,17 +43,17 @@ describe("usePlanetPositions simulation clock", () => {
 
   it("preserves speed while paused and resumes the same shared frame", () => {
     const { result } = renderHook(() => usePlanetPositions());
-    const initialPositions = result.current.positions;
+     const initialPositions = result.current.positionsRef.current;
 
     act(() => result.current.setSpeed(6));
     act(() => result.current.togglePause());
     act(() => frameCallback({}, 1));
     expect(result.current.speed).toBe(6);
-    expect(result.current.positions).toBe(initialPositions);
+     expect(result.current.positionsRef.current).toBe(initialPositions);
 
     act(() => result.current.togglePause());
     act(() => frameCallback({}, 1));
     expect(result.current.speed).toBe(6);
-    expect(result.current.positions).not.toBe(initialPositions);
+     expect(result.current.positionsRef.current).not.toBe(initialPositions);
   });
 });

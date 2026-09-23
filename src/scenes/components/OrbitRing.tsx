@@ -1,3 +1,8 @@
+import { useFrame } from "@react-three/fiber";
+import { useRef, type MutableRefObject } from "react";
+import * as THREE from "three";
+import type { PlanetPosition } from "@/domain/ephemeris/types";
+
 export const getOrbitRingGeometry = (radius: number) => ({
   innerRadius: radius - 0.012,
   outerRadius: radius + 0.012,
@@ -5,10 +10,28 @@ export const getOrbitRingGeometry = (radius: number) => ({
   center: [0, 0, 0] as const,
 });
 
-export const OrbitRing = ({ radius }: { radius: number }) => {
+export const OrbitRing = ({
+  radius,
+  positionsRef,
+  isAnimatingRef,
+  positionIndex,
+}: {
+  radius: number;
+  positionsRef: MutableRefObject<PlanetPosition[]>;
+  isAnimatingRef: MutableRefObject<boolean>;
+  positionIndex: number;
+}) => {
+  const mesh = useRef<THREE.Mesh>(null);
   const geometry = getOrbitRingGeometry(radius);
+  useFrame(() => {
+    if (!isAnimatingRef.current) return;
+    const position = positionsRef.current[positionIndex];
+    if (position && mesh.current) {
+      mesh.current.scale.setScalar(position.sceneDistance / radius);
+    }
+  });
   return (
-    <mesh rotation={[Math.PI / 2, 0, 0]}>
+    <mesh ref={mesh} rotation={[Math.PI / 2, 0, 0]}>
       <ringGeometry args={[geometry.innerRadius, geometry.outerRadius, geometry.segments]} />
       <meshBasicMaterial color="#34476e" transparent opacity={0.45} />
     </mesh>

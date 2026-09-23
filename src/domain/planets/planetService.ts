@@ -168,6 +168,10 @@ export const PLANETS: Planet[] = [
   },
 ];
 
+export const PLANETS_BY_ID = new Map<PlanetId, Planet>(
+  PLANETS.map((planet) => [planet.id as PlanetId, planet]),
+);
+
 export const getPlanet = (id: string): Planet | undefined => {
-  return PLANETS.find((planet) => planet.id === id);
+  return PLANETS_BY_ID.get(id as PlanetId);
 };
