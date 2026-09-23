@@ -156,7 +156,7 @@ h1 em {
   z-index: 1;
   inset: 0;
   pointer-events: none;
-  background: center / cover no-repeat url("/assets/cockpit.png");
+  background: center / cover no-repeat url("/assets/cockpit.webp");
 }
 .view-toggle {
   position: absolute;
@@ -228,7 +228,9 @@ h1 em {
   background: rgba(9, 15, 37, 0.72);
   border: 1px solid var(--line);
   text-align: center;
-  font: 11px "DM Mono", monospace;
+  font:
+    11px "DM Mono",
+    monospace;
 }
 .map-controls {
   position: absolute;
@@ -276,7 +278,9 @@ h1 em {
   color: var(--ink);
   background: var(--panel);
   border: 1px solid var(--line);
-  font: 11px "DM Mono", monospace;
+  font:
+    11px "DM Mono",
+    monospace;
 }
 .orbit-controls input {
   width: 100%;
