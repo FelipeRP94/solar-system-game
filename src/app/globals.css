@@ -151,6 +151,24 @@ h1 em {
   position: absolute !important;
   inset: 0;
 }
+.cockpit-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: center / cover no-repeat url("/assets/cockpit.webp");
+}
+.view-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 5vh;
+  right: 5vw;
+  margin: 0;
+  padding: 10px 14px;
+  border-color: var(--cyan);
+  background: var(--panel);
+  cursor: pointer;
+}
 .map-header {
   position: absolute;
   z-index: 2;
@@ -198,6 +216,22 @@ h1 em {
   max-width: min(520px, 90vw);
   line-height: 1.5;
 }
+.cockpit-hint {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 5vh;
+  transform: translateX(-50%);
+  max-width: min(520px, 90vw);
+  padding: 9px 12px;
+  color: var(--muted);
+  background: rgba(9, 15, 37, 0.72);
+  border: 1px solid var(--line);
+  text-align: center;
+  font:
+    11px "DM Mono",
+    monospace;
+}
 .map-controls {
   position: absolute;
   left: 5vw;
@@ -244,7 +278,9 @@ h1 em {
   color: var(--ink);
   background: var(--panel);
   border: 1px solid var(--line);
-  font: 11px "DM Mono", monospace;
+  font:
+    11px "DM Mono",
+    monospace;
 }
 .orbit-controls input {
   width: 100%;
@@ -444,6 +480,12 @@ h1 em {
     left: 6vw;
     top: 4vh;
     display: block;
+  }
+  .view-toggle {
+    top: 4vh;
+    right: 6vw;
+    max-width: 42vw;
+    font-size: 10px;
   }
   .legend {
     margin-top: 0;
