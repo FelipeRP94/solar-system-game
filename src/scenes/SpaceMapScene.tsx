@@ -51,6 +51,7 @@ const PLANET_TEXTURE_SET = {
 
 type TexturedPlanetNodesProps = {
   positions: ReturnType<typeof usePlanetPositions>["positions"];
+  speedRef: MutableRefObject<number>;
   positionsRef: ReturnType<typeof usePlanetPositions>["positionsRef"];
   isAnimatingRef: ReturnType<typeof usePlanetPositions>["isAnimatingRef"];
   onSelect: (planetId: string) => void;
@@ -58,6 +59,7 @@ type TexturedPlanetNodesProps = {
 
 const TexturedPlanetNodes = ({
   positions,
+  speedRef,
   positionsRef,
   isAnimatingRef,
   onSelect,
@@ -86,6 +88,7 @@ const TexturedPlanetNodes = ({
         const props: PlanetNodeProps = {
           planet,
           position,
+          speedRef,
           positionsRef,
           isAnimatingRef,
           positionIndex,
@@ -271,6 +274,7 @@ const SpaceMapContents = memo(({
                 planet: PLANETS_BY_ID.get(position.planetId as PlanetId)!,
                 position,
               }))}
+              speedRef={speedRef}
               positionsRef={positionsRef}
               isAnimatingRef={isAnimatingRef}
               onSelect={onSelect}
@@ -287,6 +291,7 @@ const SpaceMapContents = memo(({
                   planet: PLANETS_BY_ID.get(position.planetId as PlanetId)!,
                   position,
                 }))}
+                speedRef={speedRef}
                 positionsRef={positionsRef}
                 isAnimatingRef={isAnimatingRef}
                 onSelect={onSelect}
@@ -296,6 +301,7 @@ const SpaceMapContents = memo(({
         >
           <TexturedPlanetNodes
             positions={positions}
+            speedRef={speedRef}
             positionsRef={positionsRef}
             isAnimatingRef={isAnimatingRef}
             onSelect={onSelect}

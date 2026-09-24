@@ -1,12 +1,14 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useRef, type MutableRefObject } from "react";
+import { useRef, type MutableRefObject, type ReactNode } from "react";
 import type { Planet } from "@/domain/planets/types";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
 import * as THREE from "three";
 import { isWithinDragThreshold } from "../mapNavigation";
+import { BASE_SIMULATED_DAYS_PER_SECOND } from "../hooks/usePlanetPositions";
 import { getPlanetVisualRadius } from "./planetVisualScale";
+import { getPlanetSpinRadiansPerSecond } from "./planetRotation";
 import { SaturnRings } from "./SaturnRings";
 
 const usePlanetPosition = (
@@ -27,6 +29,7 @@ const usePlanetPosition = (
 export type PlanetNodeProps = {
   planet: Planet;
   position: PlanetPosition;
+  speedRef: MutableRefObject<number>;
   positionsRef: MutableRefObject<PlanetPosition[]>;
   isAnimatingRef: MutableRefObject<boolean>;
   positionIndex: number;
@@ -39,15 +42,71 @@ type PlanetFallbackNodeProps = Pick<
   PlanetNodeProps,
   | "planet"
   | "position"
+  | "speedRef"
   | "positionsRef"
   | "isAnimatingRef"
   | "positionIndex"
   | "onSelect"
 >;
 
+const PlanetBody = ({
+  planet,
+  radius,
+  speedRef,
+  isAnimatingRef,
+  ringTexture,
+  children,
+}: {
+  planet: Planet;
+  radius: number;
+  speedRef: MutableRefObject<number>;
+  isAnimatingRef: MutableRefObject<boolean>;
+  ringTexture?: THREE.Texture;
+  children: ReactNode;
+}) => {
+  const sphere = useRef<THREE.Mesh>(null);
+  useFrame((_, delta) => {
+    if (!isAnimatingRef.current || !sphere.current) return;
+
+    // Axial tilt beyond 90 degrees represents retrograde rotation.
+    sphere.current.rotation.y +=
+      delta *
+      getPlanetSpinRadiansPerSecond(
+        planet.rotationPeriodHours,
+        speedRef.current * BASE_SIMULATED_DAYS_PER_SECOND,
+      );
+  });
+
+  const axisRadius = Math.max(radius * 0.02, 0.008);
+
+  return (
+    <group rotation={[THREE.MathUtils.degToRad(planet.axialTiltDegrees), 0, 0]}>
+      <mesh ref={sphere}>
+        <sphereGeometry args={[radius, 24, 16]} />
+        {children}
+      </mesh>
+      <mesh renderOrder={1}>
+        <cylinderGeometry args={[axisRadius, axisRadius, radius * 3, 8]} />
+        <meshBasicMaterial
+          color="#f3e8b4"
+          transparent
+          opacity={0.9}
+          depthTest={false}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      {planet.id === "saturn" && (
+        <SaturnRings radius={radius} texture={ringTexture} />
+      )}
+    </group>
+  );
+};
+
 const PlanetFallbackNode = ({
   planet,
   position,
+  speedRef,
   positionsRef,
   isAnimatingRef,
   positionIndex,
@@ -65,13 +124,14 @@ const PlanetFallbackNode = ({
         if (isWithinDragThreshold(event.delta)) onSelect();
       }}
     >
-      <mesh>
-        <sphereGeometry args={[radius, 24, 16]} />
+      <PlanetBody
+        planet={planet}
+        radius={radius}
+        speedRef={speedRef}
+        isAnimatingRef={isAnimatingRef}
+      >
         <meshStandardMaterial color={planet.color} roughness={0.8} />
-      </mesh>
-      {planet.id === "saturn" && (
-        <SaturnRings radius={radius} />
-      )}
+      </PlanetBody>
     </group>
   );
 };
@@ -79,6 +139,7 @@ const PlanetFallbackNode = ({
 export const PlanetNode = ({
   planet,
   position,
+  speedRef,
   positionsRef,
   isAnimatingRef,
   positionIndex,
@@ -99,13 +160,15 @@ export const PlanetNode = ({
         if (isWithinDragThreshold(event.delta)) onSelect();
       }}
     >
-      <mesh>
-        <sphereGeometry args={[radius, 24, 16]} />
+      <PlanetBody
+        planet={planet}
+        radius={radius}
+        speedRef={speedRef}
+        isAnimatingRef={isAnimatingRef}
+        ringTexture={ringTexture}
+      >
         <meshStandardMaterial map={texture} roughness={0.8} />
-      </mesh>
-      {planet.id === "saturn" && (
-        <SaturnRings radius={radius} texture={ringTexture} />
-      )}
+      </PlanetBody>
     </group>
   );
 };
@@ -117,10 +180,12 @@ type PlanetFallbackNodesProps = {
 
 export const PlanetFallbackNodes = ({
   planets,
+  speedRef,
   positionsRef,
   isAnimatingRef,
   onSelect,
 }: PlanetFallbackNodesProps & {
+  speedRef: MutableRefObject<number>;
   positionsRef: MutableRefObject<PlanetPosition[]>;
   isAnimatingRef: MutableRefObject<boolean>;
 }) => (
@@ -130,6 +195,7 @@ export const PlanetFallbackNodes = ({
         key={planet.id}
         planet={planet}
         position={position}
+        speedRef={speedRef}
         positionsRef={positionsRef}
         isAnimatingRef={isAnimatingRef}
         positionIndex={positionIndex}

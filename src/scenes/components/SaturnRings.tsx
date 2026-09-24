@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import * as THREE from "three";
 
-const SATURN_RING_INCLINATION = (26.7 * Math.PI) / 180;
-
 export const getSaturnRingGeometry = (radius: number): THREE.RingGeometry => {
   const innerRadius = radius * 1.15;
   const outerRadius = radius * 2.4;
@@ -34,7 +32,7 @@ export const SaturnRings = ({
   return (
     <mesh
       geometry={geometry}
-      rotation={[Math.PI / 2 + SATURN_RING_INCLINATION, 0, 0]}
+      rotation={[Math.PI / 2, 0, 0]}
     >
       <meshBasicMaterial
         color="#d8c393"

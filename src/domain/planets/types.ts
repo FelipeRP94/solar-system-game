@@ -10,6 +10,7 @@ export type Planet = {
   moons: number;
   orbitalPeriodDays: number;
   rotationPeriodHours: number;
+  axialTiltDegrees: number;
   atmosphere: { gas: string; percentage: number }[];
   description: string;
 };
