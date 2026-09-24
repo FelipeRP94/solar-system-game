@@ -16,6 +16,7 @@ describe("OrbitRing", () => {
 
     expect(geometry.parameters.closed).toBe(true);
     expect(geometry.parameters.tubularSegments).toBe(points.length * 2);
+    expect(geometry.parameters.radius).toBe(0.01);
     expect(path.points.some((point) => point.y !== 0)).toBe(true);
 
     geometry.dispose();

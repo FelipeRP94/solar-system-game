@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
 
-const ORBIT_LINE_RADIUS = 0.055;
+const ORBIT_LINE_RADIUS = 0.01;
 
 export const getOrbitPathGeometry = (points: PlanetPosition[]) => {
   const curve = new THREE.CatmullRomCurve3(
