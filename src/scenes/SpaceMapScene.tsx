@@ -21,6 +21,7 @@ import { PLANETS_BY_ID, type PlanetId } from "@/domain/planets/planetService";
 import { usePlanetPositions } from "./hooks/usePlanetPositions";
 import { Spaceship, type ShipOrientation } from "./components/Spaceship";
 import { PlanetFallbackNodes, PlanetNode } from "./components/PlanetNode";
+import { getPlanetVisualRadius } from "./components/planetVisualScale";
 import { OrbitRing } from "./components/OrbitRing";
 import { ProximityPrompt } from "./components/ProximityPrompt";
 import {
@@ -40,6 +41,8 @@ import {
 } from "./planetTextures";
 import type { PlanetNodeProps } from "./components/PlanetNode";
 
+const SUN_VISUAL_RADIUS = 2.2;
+
 const PLANET_TEXTURE_SET = {
   ...PLANET_TEXTURES,
   saturnRing: SATURN_RING_TEXTURE,
@@ -48,6 +51,7 @@ const PLANET_TEXTURE_SET = {
 
 type TexturedPlanetNodesProps = {
   positions: ReturnType<typeof usePlanetPositions>["positions"];
+  speedRef: MutableRefObject<number>;
   positionsRef: ReturnType<typeof usePlanetPositions>["positionsRef"];
   isAnimatingRef: ReturnType<typeof usePlanetPositions>["isAnimatingRef"];
   onSelect: (planetId: string) => void;
@@ -55,6 +59,7 @@ type TexturedPlanetNodesProps = {
 
 const TexturedPlanetNodes = ({
   positions,
+  speedRef,
   positionsRef,
   isAnimatingRef,
   onSelect,
@@ -71,7 +76,7 @@ const TexturedPlanetNodes = ({
   return (
     <>
       <mesh>
-        <sphereGeometry args={[1.7, 32, 32]} />
+        <sphereGeometry args={[SUN_VISUAL_RADIUS, 32, 32]} />
         <meshBasicMaterial
           map={textures.sun}
           color="#ffffff"
@@ -83,6 +88,7 @@ const TexturedPlanetNodes = ({
         const props: PlanetNodeProps = {
           planet,
           position,
+          speedRef,
           positionsRef,
           isAnimatingRef,
           positionIndex,
@@ -98,7 +104,7 @@ const TexturedPlanetNodes = ({
 
 const SunFallback = () => (
   <mesh>
-    <sphereGeometry args={[1.7, 32, 32]} />
+    <sphereGeometry args={[SUN_VISUAL_RADIUS, 32, 32]} />
     <meshBasicMaterial color="#ffb342" />
   </mesh>
 );
@@ -207,7 +213,7 @@ const SpaceMapContents = memo(({
   viewMode,
   onSelect,
 }: SpaceMapContentsProps) => {
-  const { positions, positionsRef, isAnimatingRef } = usePlanetPositions({
+  const { positions, orbits, positionsRef, isAnimatingRef } = usePlanetPositions({
     speedRef,
     pausedRef,
   });
@@ -219,7 +225,7 @@ const SpaceMapContents = memo(({
     let distanceSquared = 2.4 ** 2;
     positionsRef.current.forEach((position) => {
       const deltaX = current.x - position.x;
-      const deltaY = current.y;
+      const deltaY = current.y - position.y;
       const deltaZ = current.z - position.z;
       const nextDistanceSquared =
         deltaX ** 2 + deltaY ** 2 + deltaZ ** 2;
@@ -236,10 +242,15 @@ const SpaceMapContents = memo(({
 
   return (
     <>
-      <color attach="background" args={["#050817"]} />
-      <fog attach="fog" args={["#050817", 20, 100]} />
-      <ambientLight intensity={1.2} />
-      <pointLight position={[0, 0, 0]} intensity={8} color="#ffcf78" />
+      <color attach="background" args={["#000000"]} />
+      <fog attach="fog" args={["#000000", 24, 130]} />
+      <ambientLight intensity={1} />
+      <pointLight
+        position={[0, 0, 0]}
+        intensity={16}
+        decay={1}
+        color="#ffcf78"
+      />
       <Stars
         radius={90}
         depth={40}
@@ -248,13 +259,10 @@ const SpaceMapContents = memo(({
         saturation={0}
         fade
       />
-      {positions.map((position, positionIndex) => (
+      {orbits.map((orbit) => (
         <OrbitRing
-          key={`orbit-${position.planetId}`}
-          radius={position.sceneDistance}
-          positionsRef={positionsRef}
-          isAnimatingRef={isAnimatingRef}
-          positionIndex={positionIndex}
+          key={`orbit-${orbit.planetId}`}
+          points={orbit.points}
         />
       ))}
       <Suspense
@@ -266,6 +274,7 @@ const SpaceMapContents = memo(({
                 planet: PLANETS_BY_ID.get(position.planetId as PlanetId)!,
                 position,
               }))}
+              speedRef={speedRef}
               positionsRef={positionsRef}
               isAnimatingRef={isAnimatingRef}
               onSelect={onSelect}
@@ -282,6 +291,7 @@ const SpaceMapContents = memo(({
                   planet: PLANETS_BY_ID.get(position.planetId as PlanetId)!,
                   position,
                 }))}
+                speedRef={speedRef}
                 positionsRef={positionsRef}
                 isAnimatingRef={isAnimatingRef}
                 onSelect={onSelect}
@@ -291,6 +301,7 @@ const SpaceMapContents = memo(({
         >
           <TexturedPlanetNodes
             positions={positions}
+            speedRef={speedRef}
             positionsRef={positionsRef}
             isAnimatingRef={isAnimatingRef}
             onSelect={onSelect}
@@ -310,9 +321,31 @@ const SpaceMapContents = memo(({
         <OrbitControls
           ref={controlsRef}
           {...MAP_ORBIT_CONTROLS}
-          onChange={(event) =>
-            clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
-          }
+          onChange={(event) => {
+            const collisionSpheres = [
+              { x: 0, y: 0, z: 0, radius: SUN_VISUAL_RADIUS },
+              ...positionsRef.current.flatMap((position) => {
+                const planet = PLANETS_BY_ID.get(
+                  position.planetId as PlanetId,
+                );
+                return planet
+                  ? [
+                      {
+                        x: position.x,
+                        y: position.y,
+                        z: position.z,
+                        radius: getPlanetVisualRadius(planet),
+                      },
+                    ]
+                  : [];
+              }),
+            ];
+            clampMapControlsChange(
+              event,
+              MAP_NAVIGATION_BOUNDS,
+              collisionSpheres,
+            );
+          }}
         />
       )}
     </>
@@ -369,7 +402,7 @@ export const SpaceMapScene = () => {
         </div>
       </div>
       <Canvas
-        camera={{ position: [6, 6, 12], fov: 45 }}
+        camera={{ position: [6, 6, 12], fov: 45, near: 0.01 }}
         dpr={[1, 1.5]}
         performance={{ min: 0.5 }}
       >

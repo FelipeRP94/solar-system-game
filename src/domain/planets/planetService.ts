@@ -25,6 +25,7 @@ export const PLANETS: Planet[] = [
     moons: 0,
     orbitalPeriodDays: 88,
     rotationPeriodHours: 1407.6,
+    axialTiltDegrees: 0.034,
     atmosphere: [
       { gas: "Oxígeno", percentage: 42 },
       { gas: "Sodio", percentage: 29 },
@@ -44,6 +45,7 @@ export const PLANETS: Planet[] = [
     moons: 0,
     orbitalPeriodDays: 224.7,
     rotationPeriodHours: -5832.5,
+    axialTiltDegrees: 177.4,
     atmosphere: [
       { gas: "Dióxido de carbono", percentage: 96.5 },
       { gas: "Nitrógeno", percentage: 3.5 },
@@ -63,6 +65,7 @@ export const PLANETS: Planet[] = [
     moons: 1,
     orbitalPeriodDays: 365.25,
     rotationPeriodHours: 23.93,
+    axialTiltDegrees: 23.4,
     atmosphere: [
       { gas: "Nitrógeno", percentage: 78.08 },
       { gas: "Oxígeno", percentage: 20.95 },
@@ -82,6 +85,7 @@ export const PLANETS: Planet[] = [
     moons: 2,
     orbitalPeriodDays: 687,
     rotationPeriodHours: 24.62,
+    axialTiltDegrees: 25.2,
     atmosphere: [
       { gas: "Dióxido de carbono", percentage: 95.3 },
       { gas: "Nitrógeno", percentage: 2.7 },
@@ -102,6 +106,7 @@ export const PLANETS: Planet[] = [
     moons: 95,
     orbitalPeriodDays: 4331,
     rotationPeriodHours: 9.93,
+    axialTiltDegrees: 3.1,
     atmosphere: [
       { gas: "Hidrógeno", percentage: 89.8 },
       { gas: "Helio", percentage: 10.2 },
@@ -120,6 +125,7 @@ export const PLANETS: Planet[] = [
     moons: 146,
     orbitalPeriodDays: 10747,
     rotationPeriodHours: 10.7,
+    axialTiltDegrees: 26.7,
     atmosphere: [
       { gas: "Hidrógeno", percentage: 96.3 },
       { gas: "Helio", percentage: 3.25 },
@@ -139,6 +145,7 @@ export const PLANETS: Planet[] = [
     moons: 28,
     orbitalPeriodDays: 30589,
     rotationPeriodHours: -17.24,
+    axialTiltDegrees: 97.8,
     atmosphere: [
       { gas: "Hidrógeno", percentage: 82.5 },
       { gas: "Helio", percentage: 15.2 },
@@ -158,6 +165,7 @@ export const PLANETS: Planet[] = [
     moons: 16,
     orbitalPeriodDays: 60190,
     rotationPeriodHours: 16.11,
+    axialTiltDegrees: 28.3,
     atmosphere: [
       { gas: "Hidrógeno", percentage: 80 },
       { gas: "Helio", percentage: 19 },
