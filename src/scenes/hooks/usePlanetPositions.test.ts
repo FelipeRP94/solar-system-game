@@ -4,6 +4,7 @@ import {
   advanceSimulationDate,
   BASE_SIMULATED_DAYS_PER_SECOND,
   clampFrameDelta,
+  interpolatePlanetPositions,
   speedToSimulatedDays,
   usePlanetPositions,
 } from "./usePlanetPositions";
@@ -41,19 +42,60 @@ describe("usePlanetPositions simulation clock", () => {
     expect(clampFrameDelta(10)).toBe(1);
   });
 
+  it("interpolates positions between ephemeris updates", () => {
+    const positions = [
+      {
+        planetId: "earth",
+        realAngleRad: 0,
+        realDistanceAU: 1,
+        sceneDistance: 10,
+        x: 10,
+        z: 0,
+      },
+    ];
+    const targetPositions = [
+      {
+        ...positions[0],
+        realAngleRad: 0.2,
+        realDistanceAU: 1.1,
+        sceneDistance: 11,
+        x: 0,
+        z: 11,
+      },
+    ];
+
+    interpolatePlanetPositions(
+      positions,
+      positions.map((position) => ({ ...position })),
+      targetPositions,
+      0.5,
+    );
+
+    expect(positions[0]).toMatchObject({
+      realAngleRad: 0.1,
+      realDistanceAU: 1.05,
+      sceneDistance: 10.5,
+      x: 5,
+      z: 5.5,
+    });
+  });
+
   it("preserves speed while paused and resumes the same shared frame", () => {
     const { result } = renderHook(() => usePlanetPositions());
-     const initialPositions = result.current.positionsRef.current;
+    const initialPositions = result.current.positionsRef.current;
+    const initialSnapshot = initialPositions.map((position) => ({ ...position }));
 
     act(() => result.current.setSpeed(6));
     act(() => result.current.togglePause());
-    act(() => frameCallback({}, 1));
+    act(() => frameCallback({}, 1 / 60));
     expect(result.current.speed).toBe(6);
-     expect(result.current.positionsRef.current).toBe(initialPositions);
+    expect(result.current.positionsRef.current).toBe(initialPositions);
 
     act(() => result.current.togglePause());
-    act(() => frameCallback({}, 1));
+    act(() => frameCallback({}, 1 / 60));
+    act(() => frameCallback({}, 1 / 60));
     expect(result.current.speed).toBe(6);
-     expect(result.current.positionsRef.current).not.toBe(initialPositions);
+    expect(result.current.positionsRef.current).toBe(initialPositions);
+    expect(result.current.positionsRef.current).not.toEqual(initialSnapshot);
   });
 });
