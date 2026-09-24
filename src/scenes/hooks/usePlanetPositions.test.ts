@@ -46,20 +46,20 @@ describe("usePlanetPositions simulation clock", () => {
     const positions = [
       {
         planetId: "earth",
-        realAngleRad: 0,
         realDistanceAU: 1,
         sceneDistance: 10,
         x: 10,
+        y: 0,
         z: 0,
       },
     ];
     const targetPositions = [
       {
         ...positions[0],
-        realAngleRad: 0.2,
         realDistanceAU: 1.1,
         sceneDistance: 11,
         x: 0,
+        y: 2,
         z: 11,
       },
     ];
@@ -72,10 +72,10 @@ describe("usePlanetPositions simulation clock", () => {
     );
 
     expect(positions[0]).toMatchObject({
-      realAngleRad: 0.1,
       realDistanceAU: 1.05,
       sceneDistance: 10.5,
       x: 5,
+      y: 1,
       z: 5.5,
     });
   });

@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
-import { calculatePlanetPositions } from "@/domain/ephemeris/ephemerisService";
+import {
+  calculatePlanetOrbits,
+  calculatePlanetPositions,
+} from "@/domain/ephemeris/ephemerisService";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
 const MAX_FRAME_DELTA_SECONDS = 1;
 const POSITIONS_UPDATE_INTERVAL_SECONDS = 1 / 15;
@@ -32,10 +35,6 @@ export const interpolatePlanetPositions = (
     const target = targetPositions[index];
     if (!start || !target) return;
 
-    position.realAngleRad =
-      start.realAngleRad +
-      (target.realAngleRad - start.realAngleRad) *
-        clampedProgress;
     position.realDistanceAU =
       start.realDistanceAU +
       (target.realDistanceAU - start.realDistanceAU) *
@@ -45,6 +44,7 @@ export const interpolatePlanetPositions = (
       (target.sceneDistance - start.sceneDistance) *
         clampedProgress;
     position.x = start.x + (target.x - start.x) * clampedProgress;
+    position.y = start.y + (target.y - start.y) * clampedProgress;
     position.z = start.z + (target.z - start.z) * clampedProgress;
   });
 };
@@ -60,12 +60,14 @@ export const advanceSimulationDate = (
 
 export const usePlanetPositions = (options: PlanetPositionOptions = {}) => {
   const { pausedRef, speedRef } = options;
-  const date = useRef(new Date());
+  const [initialDate] = useState(() => new Date());
+  const date = useRef(initialDate);
   const speed = useRef(options.speed ?? 1);
   const paused = useRef(options.paused ?? false);
   const isAnimatingRef = useRef(true);
   const elapsedSinceUpdate = useRef(POSITIONS_UPDATE_INTERVAL_SECONDS);
-  const [positions] = useState(() => calculatePlanetPositions());
+  const [positions] = useState(() => calculatePlanetPositions(initialDate));
+  const [orbits] = useState(() => calculatePlanetOrbits(initialDate));
   const positionsRef = useRef(positions);
   const [speedValue, setSpeedValue] = useState(options.speed ?? 1);
   const [pausedValue, setPausedValue] = useState(options.paused ?? false);
@@ -123,6 +125,7 @@ export const usePlanetPositions = (options: PlanetPositionOptions = {}) => {
 
   return {
     positions,
+    orbits,
     positionsRef,
     isAnimatingRef,
     speed: speedValue,

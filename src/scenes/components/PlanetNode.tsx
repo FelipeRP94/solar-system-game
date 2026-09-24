@@ -19,7 +19,7 @@ const usePlanetPosition = (
     if (!isAnimatingRef.current) return;
     const position = positionsRef.current[positionIndex];
     if (position && group.current) {
-      group.current.position.set(position.x, 0, position.z);
+      group.current.position.set(position.x, position.y, position.z);
     }
   });
 };
@@ -59,7 +59,7 @@ const PlanetFallbackNode = ({
   return (
     <group
       ref={group}
-      position={[position.x, 0, position.z]}
+      position={[position.x, position.y, position.z]}
       onClick={(event) => {
         event.stopPropagation();
         if (isWithinDragThreshold(event.delta)) onSelect();
@@ -93,7 +93,7 @@ export const PlanetNode = ({
   return (
     <group
       ref={group}
-      position={[position.x, 0, position.z]}
+      position={[position.x, position.y, position.z]}
       onClick={(event) => {
         event.stopPropagation();
         if (isWithinDragThreshold(event.delta)) onSelect();

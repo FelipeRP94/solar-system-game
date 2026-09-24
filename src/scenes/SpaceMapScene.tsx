@@ -210,7 +210,7 @@ const SpaceMapContents = memo(({
   viewMode,
   onSelect,
 }: SpaceMapContentsProps) => {
-  const { positions, positionsRef, isAnimatingRef } = usePlanetPositions({
+  const { positions, orbits, positionsRef, isAnimatingRef } = usePlanetPositions({
     speedRef,
     pausedRef,
   });
@@ -222,7 +222,7 @@ const SpaceMapContents = memo(({
     let distanceSquared = 2.4 ** 2;
     positionsRef.current.forEach((position) => {
       const deltaX = current.x - position.x;
-      const deltaY = current.y;
+      const deltaY = current.y - position.y;
       const deltaZ = current.z - position.z;
       const nextDistanceSquared =
         deltaX ** 2 + deltaY ** 2 + deltaZ ** 2;
@@ -256,13 +256,10 @@ const SpaceMapContents = memo(({
         saturation={0}
         fade
       />
-      {positions.map((position, positionIndex) => (
+      {orbits.map((orbit) => (
         <OrbitRing
-          key={`orbit-${position.planetId}`}
-          radius={position.sceneDistance}
-          positionsRef={positionsRef}
-          isAnimatingRef={isAnimatingRef}
-          positionIndex={positionIndex}
+          key={`orbit-${orbit.planetId}`}
+          points={orbit.points}
         />
       ))}
       <Suspense
@@ -329,7 +326,7 @@ const SpaceMapContents = memo(({
                   ? [
                       {
                         x: position.x,
-                        y: 0,
+                        y: position.y,
                         z: position.z,
                         radius: getPlanetVisualRadius(planet),
                       },
