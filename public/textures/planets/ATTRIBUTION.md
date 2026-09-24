@@ -1,13 +1,18 @@
 # Planet textures
 
-These 2K Sun and planet surface and Saturn ring textures were downloaded from the
-official Solar System Scope texture downloads:
+These planet and Sun textures are adapted from the official Solar System Scope
+texture downloads:
 
 - Source: https://www.solarsystemscope.com
 - Direct asset URL pattern: https://www.solarsystemscope.com/textures/download/
 - License: CC BY 4.0
-- Selected assets: the official 2K files listed in the project implementation
-   request, including the Sun, Venus surface baseline, and Saturn ring alpha map.
+- The 4K WebP maps were resized from the official 8K/4K images and encoded at
+  quality 92 for browser delivery.
+- Venus uses the detailed 4K surface map, resized from the official 8K source.
+- Uranus and Neptune remain at 2K, the highest resolution offered for them by
+  this source.
+- Saturn's 4K ring alpha map was resized from the official 8K PNG and saved with
+  lossless PNG encoding.
 
 Solar System Scope is credited as the source. This attribution does not claim
 NASA ownership of these assets.
