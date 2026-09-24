@@ -8,6 +8,7 @@ import {
   MAX_ZOOM_DISTANCE,
   MIN_ZOOM_DISTANCE,
   clampCameraPair,
+  clampCameraOutsideSpheres,
   clampMapControlsChange,
   isWithinDragThreshold,
   MAP_CONTROL_HELP,
@@ -53,9 +54,21 @@ describe("mapNavigation", () => {
     expect(camera.clone().sub(target)).toEqual(separation);
   });
 
+  it("lets the camera zoom close but keeps it outside planetary surfaces", () => {
+    const camera = new Vector3(0, 0, 0.5);
+
+    clampCameraOutsideSpheres(camera, [
+      { x: 0, y: 0, z: 0, radius: 1 },
+    ]);
+
+    expect(camera.length()).toBeCloseTo(1.04);
+    expect(MIN_ZOOM_DISTANCE).toBeLessThan(1);
+  });
+
   it("defines usable scene bounds and ordered zoom limits", () => {
     expect(MAP_NAVIGATION_BOUNDS.minX).toBeLessThan(MAP_NAVIGATION_BOUNDS.maxX);
-    expect(MAP_NAVIGATION_BOUNDS.minY).toBeLessThan(MAP_NAVIGATION_BOUNDS.maxY);
+    expect(MAP_NAVIGATION_BOUNDS.minY).toBeLessThan(0);
+    expect(MAP_NAVIGATION_BOUNDS.maxY).toBeGreaterThan(MAX_ZOOM_DISTANCE);
     expect(MAP_NAVIGATION_BOUNDS.minZ).toBeLessThan(MAP_NAVIGATION_BOUNDS.maxZ);
     expect(MIN_ZOOM_DISTANCE).toBeGreaterThan(0);
     expect(MAX_ZOOM_DISTANCE).toBeGreaterThan(MIN_ZOOM_DISTANCE);
@@ -66,8 +79,10 @@ describe("mapNavigation", () => {
       enablePan: true,
       enableZoom: true,
       enableRotate: true,
+      zoomToCursor: true,
       minDistance: MIN_ZOOM_DISTANCE,
       maxDistance: MAX_ZOOM_DISTANCE,
+      zoomSpeed: 2.5,
       mouseButtons: {
         LEFT: THREE.MOUSE.ROTATE,
         MIDDLE: THREE.MOUSE.DOLLY,
@@ -93,7 +108,7 @@ describe("mapNavigation", () => {
       "Botón izquierdo: rotar",
       "Botón derecho: mover",
       "Botón central: dolly",
-      "Rueda: zoom",
+      "Rueda: acercar al punto señalado",
       "WASD: mover nave",
     ]);
   });
@@ -125,5 +140,26 @@ describe("mapNavigation", () => {
 
     expect(camera).toEqual(new Vector3(20, 20, 20));
     expect(target).toEqual(new Vector3(10, 10, 10));
+  });
+
+  it("does not stop zooming at bodies between the camera and its focus", () => {
+    const camera = new Vector3(0, 0, 0.5);
+    const target = new Vector3(0, 0, 10);
+    const bounds = {
+      minX: -20,
+      maxX: 20,
+      minY: -20,
+      maxY: 20,
+      minZ: -20,
+      maxZ: 20,
+    };
+
+    clampMapControlsChange(
+      { target: { object: { position: camera }, target } },
+      bounds,
+      [{ x: 0, y: 0, z: 0, radius: 1 }],
+    );
+
+    expect(camera).toEqual(new Vector3(0, 0, 0.5));
   });
 });

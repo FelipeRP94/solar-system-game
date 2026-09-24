@@ -6,6 +6,8 @@ import type { Planet } from "@/domain/planets/types";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
 import * as THREE from "three";
 import { isWithinDragThreshold } from "../mapNavigation";
+import { getPlanetVisualRadius } from "./planetVisualScale";
+import { SaturnRings } from "./SaturnRings";
 
 const usePlanetPosition = (
   group: MutableRefObject<THREE.Group | null>,
@@ -53,14 +55,7 @@ const PlanetFallbackNode = ({
 }: PlanetFallbackNodeProps) => {
   const group = useRef<THREE.Group>(null);
   usePlanetPosition(group, positionsRef, isAnimatingRef, positionIndex);
-  const radius =
-    planet.id === "jupiter"
-      ? 1.15
-      : planet.id === "saturn"
-        ? 0.95
-        : planet.id === "earth" || planet.id === "venus"
-          ? 0.48
-          : 0.35;
+  const radius = getPlanetVisualRadius(planet);
   return (
     <group
       ref={group}
@@ -75,15 +70,7 @@ const PlanetFallbackNode = ({
         <meshStandardMaterial color={planet.color} roughness={0.8} />
       </mesh>
       {planet.id === "saturn" && (
-        <mesh rotation={[Math.PI / 2.5, 0, 0]}>
-          <torusGeometry args={[1.35, 0.08, 8, 48]} />
-          <meshStandardMaterial
-            color="#d7b982"
-            transparent
-            opacity={0.9}
-            depthWrite={false}
-          />
-        </mesh>
+        <SaturnRings radius={radius} />
       )}
     </group>
   );
@@ -101,14 +88,7 @@ export const PlanetNode = ({
 }: PlanetNodeProps) => {
   const group = useRef<THREE.Group>(null);
   usePlanetPosition(group, positionsRef, isAnimatingRef, positionIndex);
-  const radius =
-    planet.id === "jupiter"
-      ? 1.15
-      : planet.id === "saturn"
-        ? 0.95
-        : planet.id === "earth" || planet.id === "venus"
-          ? 0.48
-          : 0.35;
+  const radius = getPlanetVisualRadius(planet);
 
   return (
     <group
@@ -123,17 +103,8 @@ export const PlanetNode = ({
         <sphereGeometry args={[radius, 24, 16]} />
         <meshStandardMaterial map={texture} roughness={0.8} />
       </mesh>
-      {planet.id === "saturn" && ringTexture && (
-        <mesh rotation={[Math.PI / 2.5, 0, 0]}>
-          <torusGeometry args={[1.35, 0.08, 8, 48]} />
-          <meshStandardMaterial
-            alphaMap={ringTexture}
-            color="#d7b982"
-            transparent
-            opacity={0.9}
-            depthWrite={false}
-          />
-        </mesh>
+      {planet.id === "saturn" && (
+        <SaturnRings radius={radius} texture={ringTexture} />
       )}
     </group>
   );

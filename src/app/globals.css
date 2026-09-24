@@ -13,7 +13,7 @@
 html,
 body {
   min-height: 100%;
-  background: #050817;
+  background: #000000;
   color: var(--ink);
   font-family: var(--font-space-grotesk), sans-serif;
 }
@@ -144,7 +144,7 @@ h1 em {
   min-height: 560px;
   position: relative;
   overflow: hidden;
-  background: #050817;
+  background: #000000;
 }
 .scene-loading {
   display: grid;

@@ -21,6 +21,7 @@ import { PLANETS_BY_ID, type PlanetId } from "@/domain/planets/planetService";
 import { usePlanetPositions } from "./hooks/usePlanetPositions";
 import { Spaceship, type ShipOrientation } from "./components/Spaceship";
 import { PlanetFallbackNodes, PlanetNode } from "./components/PlanetNode";
+import { getPlanetVisualRadius } from "./components/planetVisualScale";
 import { OrbitRing } from "./components/OrbitRing";
 import { ProximityPrompt } from "./components/ProximityPrompt";
 import {
@@ -39,6 +40,8 @@ import {
   SUN_TEXTURE,
 } from "./planetTextures";
 import type { PlanetNodeProps } from "./components/PlanetNode";
+
+const SUN_VISUAL_RADIUS = 2.2;
 
 const PLANET_TEXTURE_SET = {
   ...PLANET_TEXTURES,
@@ -71,7 +74,7 @@ const TexturedPlanetNodes = ({
   return (
     <>
       <mesh>
-        <sphereGeometry args={[1.7, 32, 32]} />
+        <sphereGeometry args={[SUN_VISUAL_RADIUS, 32, 32]} />
         <meshBasicMaterial
           map={textures.sun}
           color="#ffffff"
@@ -98,7 +101,7 @@ const TexturedPlanetNodes = ({
 
 const SunFallback = () => (
   <mesh>
-    <sphereGeometry args={[1.7, 32, 32]} />
+    <sphereGeometry args={[SUN_VISUAL_RADIUS, 32, 32]} />
     <meshBasicMaterial color="#ffb342" />
   </mesh>
 );
@@ -236,10 +239,15 @@ const SpaceMapContents = memo(({
 
   return (
     <>
-      <color attach="background" args={["#050817"]} />
-      <fog attach="fog" args={["#050817", 20, 100]} />
-      <ambientLight intensity={1.2} />
-      <pointLight position={[0, 0, 0]} intensity={8} color="#ffcf78" />
+      <color attach="background" args={["#000000"]} />
+      <fog attach="fog" args={["#000000", 24, 130]} />
+      <ambientLight intensity={1} />
+      <pointLight
+        position={[0, 0, 0]}
+        intensity={16}
+        decay={1}
+        color="#ffcf78"
+      />
       <Stars
         radius={90}
         depth={40}
@@ -310,9 +318,31 @@ const SpaceMapContents = memo(({
         <OrbitControls
           ref={controlsRef}
           {...MAP_ORBIT_CONTROLS}
-          onChange={(event) =>
-            clampMapControlsChange(event, MAP_NAVIGATION_BOUNDS)
-          }
+          onChange={(event) => {
+            const collisionSpheres = [
+              { x: 0, y: 0, z: 0, radius: SUN_VISUAL_RADIUS },
+              ...positionsRef.current.flatMap((position) => {
+                const planet = PLANETS_BY_ID.get(
+                  position.planetId as PlanetId,
+                );
+                return planet
+                  ? [
+                      {
+                        x: position.x,
+                        y: 0,
+                        z: position.z,
+                        radius: getPlanetVisualRadius(planet),
+                      },
+                    ]
+                  : [];
+              }),
+            ];
+            clampMapControlsChange(
+              event,
+              MAP_NAVIGATION_BOUNDS,
+              collisionSpheres,
+            );
+          }}
         />
       )}
     </>
@@ -369,7 +399,7 @@ export const SpaceMapScene = () => {
         </div>
       </div>
       <Canvas
-        camera={{ position: [6, 6, 12], fov: 45 }}
+        camera={{ position: [6, 6, 12], fov: 45, near: 0.01 }}
         dpr={[1, 1.5]}
         performance={{ min: 0.5 }}
       >

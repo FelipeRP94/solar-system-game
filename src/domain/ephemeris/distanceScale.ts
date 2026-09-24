@@ -1,4 +1,4 @@
-export const MAX_SCENE_DISTANCE = 42;
+export const MAX_SCENE_DISTANCE = 60;
 export const MAX_ORBIT_AU = 30.1;
 
 export const auToSceneDistance = (distanceAU: number): number => {
