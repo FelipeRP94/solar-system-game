@@ -2,6 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { useFreeFlightControls } from "../hooks/useFreeFlightControls";
+import { MAX_SCENE_DISTANCE } from "@/domain/ephemeris/distanceScale";
 
 export type ShipOrientation = {
   yaw: number;
@@ -34,9 +35,17 @@ export const Spaceship = ({
       }
       position.current.add(change);
       if (position.current.length() < 2.4) position.current.setLength(2.4);
-      position.current.x = THREE.MathUtils.clamp(position.current.x, -45, 45);
+      position.current.x = THREE.MathUtils.clamp(
+        position.current.x,
+        -MAX_SCENE_DISTANCE - 4,
+        MAX_SCENE_DISTANCE + 4,
+      );
       position.current.y = THREE.MathUtils.clamp(position.current.y, -18, 18);
-      position.current.z = THREE.MathUtils.clamp(position.current.z, -45, 45);
+      position.current.z = THREE.MathUtils.clamp(
+        position.current.z,
+        -MAX_SCENE_DISTANCE - 4,
+        MAX_SCENE_DISTANCE + 4,
+      );
       onMove(position.current.clone());
     }
     if (group.current) {

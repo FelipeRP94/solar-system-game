@@ -1,39 +1,37 @@
-import { useFrame } from "@react-three/fiber";
-import { useRef, type MutableRefObject } from "react";
+import { useMemo } from "react";
 import * as THREE from "three";
 import type { PlanetPosition } from "@/domain/ephemeris/types";
 
-export const getOrbitRingGeometry = (radius: number) => ({
-  innerRadius: radius - 0.012,
-  outerRadius: radius + 0.012,
-  segments: 96,
-  center: [0, 0, 0] as const,
-});
+const ORBIT_LINE_RADIUS = 0.01;
 
-export const OrbitRing = ({
-  radius,
-  positionsRef,
-  isAnimatingRef,
-  positionIndex,
-}: {
-  radius: number;
-  positionsRef: MutableRefObject<PlanetPosition[]>;
-  isAnimatingRef: MutableRefObject<boolean>;
-  positionIndex: number;
-}) => {
-  const mesh = useRef<THREE.Mesh>(null);
-  const geometry = getOrbitRingGeometry(radius);
-  useFrame(() => {
-    if (!isAnimatingRef.current) return;
-    const position = positionsRef.current[positionIndex];
-    if (position && mesh.current) {
-      mesh.current.scale.setScalar(position.sceneDistance / radius);
-    }
-  });
+export const getOrbitPathGeometry = (points: PlanetPosition[]) => {
+  const curve = new THREE.CatmullRomCurve3(
+    points.map(({ x, y, z }) => new THREE.Vector3(x, y, z)),
+    true,
+    "centripetal",
+  );
+
+  return new THREE.TubeGeometry(
+    curve,
+    points.length * 2,
+    ORBIT_LINE_RADIUS,
+    6,
+    true,
+  );
+};
+
+export const OrbitRing = ({ points }: { points: PlanetPosition[] }) => {
+  const geometry = useMemo(() => getOrbitPathGeometry(points), [points]);
+
   return (
-    <mesh ref={mesh} rotation={[Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[geometry.innerRadius, geometry.outerRadius, geometry.segments]} />
-      <meshBasicMaterial color="#34476e" transparent opacity={0.45} />
+    <mesh geometry={geometry}>
+      <meshBasicMaterial
+        color="#c5e3ff"
+        fog={false}
+        toneMapped={false}
+        depthWrite={false}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   );
 };

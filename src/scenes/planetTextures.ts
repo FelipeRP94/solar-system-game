@@ -1,17 +1,17 @@
 import type { PlanetId } from "@/domain/planets/planetService";
 
 export const PLANET_TEXTURES: Record<PlanetId, string> = {
-  mercury: "/textures/planets/mercury-2k.jpg",
-  venus: "/textures/planets/venus-surface-2k.jpg",
-  earth: "/textures/planets/earth-daymap-2k.jpg",
-  mars: "/textures/planets/mars-2k.jpg",
-  jupiter: "/textures/planets/jupiter-2k.jpg",
-  saturn: "/textures/planets/saturn-2k.jpg",
+  mercury: "/textures/planets/mercury-4k.webp",
+  venus: "/textures/planets/venus-surface-4k.webp",
+  earth: "/textures/planets/earth-daymap-4k.webp",
+  mars: "/textures/planets/mars-4k.webp",
+  jupiter: "/textures/planets/jupiter-4k.webp",
+  saturn: "/textures/planets/saturn-4k.webp",
   uranus: "/textures/planets/uranus-2k.jpg",
   neptune: "/textures/planets/neptune-2k.jpg",
 };
 
-export const SUN_TEXTURE = "/textures/planets/sun-2k.jpg";
+export const SUN_TEXTURE = "/textures/planets/sun-4k.webp";
 
 export const SATURN_RING_TEXTURE =
-  "/textures/planets/saturn-ring-alpha-2k.png";
+  "/textures/planets/saturn-ring-alpha-4k.png";
