@@ -1,0 +1,30 @@
+name: Documentation update
+description: Request an update to project documentation.
+title: "docs: "
+labels:
+  - "type:docs"
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should this documentation help contributors or agents do or understand?
+      placeholder: Describe the intended outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and constraints
+      description: Which documents, details, or constraints should be covered?
+      placeholder: Include relevant paths and requirements.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: How can contributors verify the documentation change is complete?
+      placeholder: List observable checks.
+    validations:
+      required: true
